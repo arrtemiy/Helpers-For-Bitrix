@@ -1,11 +1,11 @@
 Подключение в init.php
 
-`Bitrix\Main\Loader::registerAutoLoadClasses(null, [
+<code>Bitrix\Main\Loader::registerAutoLoadClasses(null, [
 'Queries' => '/local/php_interface/helpers/Queries.php',
 'CustomTypeSteps' => '/local/php_interface/classes/CustomTypeSteps.php',
 ]);
 
-AddEventHandler('iblock', 'OnIBlockPropertyBuildList', ['CustomTypeSteps', 'GetUserTypeDescription']);`
+AddEventHandler('iblock', 'OnIBlockPropertyBuildList', ['CustomTypeSteps', 'GetUserTypeDescription']);</code>
 
 Получаем несколько элементов ИБ и их свойства.
 
