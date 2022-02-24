@@ -7,6 +7,8 @@
 
 AddEventHandler('iblock', 'OnIBlockPropertyBuildList', ['CustomTypeSteps', 'GetUserTypeDescription']);</code>
 
+# Класс Queries
+
 Получаем несколько элементов ИБ и их свойства.
 
 `Queries::getElements([11685, 11686, 11687, 23375], [], true);`
