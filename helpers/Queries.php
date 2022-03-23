@@ -2,7 +2,6 @@
 /**
  * Created by PhpStorm
  * User: Artem Zinatullin
- * Site: https://dev-tutorials.ru
  * Date: 16.01.2022 20:28
  */
 
@@ -171,6 +170,39 @@ class Queries
         $cache->EndDataCache(["data" => $ufValues]);
 
         return $ufValues;
+    }
+
+    // Получить несколько разделов
+    // Пример Queries::getSections($arParams['IBLOCK_ID'], [155, 156], ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
+    public static function getSections(int $iblockId, $idSections = [], $ufProperties = []): array
+    {
+        $cache = new CPHPCache();
+        $cache_id = $idSections[0];
+        self::$cache_path = 'getSections';
+
+        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
+            $res = $cache->GetVars();
+            if (is_array($res["data"]) && (count($res["data"]) > 0))
+                return $res["data"];
+        }
+
+        $sectValues = [];
+        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSections, 'ACTIVE' => 'Y'];
+        $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
+        $i = 0;
+
+        while ($data = $rs->GetNext()) {
+            $sectValues[$i] = $data;
+            foreach ($ufProperties as $ufProperty) {
+                $sectValues[$i][$ufProperty] = $data[$ufProperty];
+            }
+            $i += 1;
+        }
+
+        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
+        $cache->EndDataCache(["data" => $sectValues]);
+
+        return $sectValues;
     }
 
 }
