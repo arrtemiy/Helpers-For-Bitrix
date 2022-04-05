@@ -146,8 +146,9 @@ class Queries
     // Пример Queries::getUfVal($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
     public static function getUfVal(int $iblockId, int $idSection, $ufProperties = []): array
     {
+        CModule::IncludeModule('iblock');
         $cache = new CPHPCache();
-        $cache_id = $idSection;
+        $cache_id = $iblockId . $idSection . $ufProperties[0];
         self::$cache_path = 'getUfVal';
 
         if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
