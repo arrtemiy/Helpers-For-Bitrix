@@ -129,7 +129,7 @@ class Queries
 
     // Получить все данные текущей секции
     // Пример Queries::getSectAll(null, true);
-    public static function getSectAll($iblockId = null, $currentId = false)
+    public static function getSectAll($iBlockId = null, $currentId = false)
     {
         global $APPLICATION;
         $cache = new CPHPCache();
@@ -145,7 +145,7 @@ class Queries
         CModule::IncludeModule('iblock');
 
         $slugArr = array_filter(explode('/', $APPLICATION->GetCurPage()));
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y', 'CODE' => end($slugArr)];
+        $arFilter = ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y', 'CODE' => end($slugArr)];
         $arSectionData = [];
 
         $rs = CIBlockSection::GetList([], $arFilter, false, false, []);
@@ -159,13 +159,13 @@ class Queries
 
     // Получить ID секций. Возвращает массив ID для текущего урла. Чтобы получить 1 текущий id - передайте вторым параметром true.
     // Пример Queries::getSectId(null, true);
-    public static function getSectId($iblockId = null, $currentId = false)
+    public static function getSectId($iBlockId = null, $currentId = false)
     {
         global $APPLICATION;
         CModule::IncludeModule('iblock');
 
         $slugArr = array_filter(explode('/', $APPLICATION->GetCurPage()));
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y'];
+        $arFilter = ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y'];
         $arSelect = ['ID'];
         $arSectionId = [];
 
@@ -182,9 +182,25 @@ class Queries
         }
     }
 
+    // Получить все ID секций ИБ
+    // TODO: Добавить кеширование
+    public static function getSectionsIB($iBlockId)
+    {
+        $sectId = [];
+        $rsParentSection = CIBlockSection::GetList(
+            ['NAME' => 'ASC'],
+            ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y']
+        );
+        while ($arParentSection = $rsParentSection->GetNext()) {
+            $sectId[] = $arParentSection['ID'];
+        }
+
+        return $sectId;
+    }
+
     // Получить несколько разделов
     // Пример Queries::getSections($arParams['IBLOCK_ID'], [155, 156], ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getSections($iblockId, $idSections = [], $ufProperties = [])
+    public static function getSections($iBlockId, $idSections = [], $ufProperties = [])
     {
         $cache = new CPHPCache();
         $cache_id = $_SERVER['REQUEST_URI'] . $idSections[0];
@@ -197,7 +213,7 @@ class Queries
         }
 
         $sectValues = [];
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSections, 'ACTIVE' => 'Y'];
+        $arFilter = ['IBLOCK_ID' => $iBlockId, 'ID' => $idSections, 'ACTIVE' => 'Y'];
         $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
         $i = 0;
 
@@ -217,7 +233,7 @@ class Queries
 
     // Получить раздел
     // Пример Queries::getSection($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getSection($iblockId, $idSection, $ufProperties = [])
+    public static function getSection($iBlockId, $idSection, $ufProperties = [])
     {
         $cache = new CPHPCache();
         $cache_id = $_SERVER['REQUEST_URI'] . $idSection;
@@ -230,7 +246,7 @@ class Queries
         }
 
         $sectValues = [];
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
+        $arFilter = ['IBLOCK_ID' => $iBlockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
         $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
         $i = 0;
 
@@ -250,11 +266,11 @@ class Queries
 
     // Получить пользовательское значение UF
     // Пример Queries::getUfVal($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getUfVal($iblockId, $idSection, $ufProperties = [])
+    public static function getUfVal($iBlockId, $idSection, $ufProperties = [])
     {
         CModule::IncludeModule('iblock');
         $cache = new CPHPCache();
-        $cache_id = $iblockId . $idSection . $ufProperties[0] . $_SERVER['REQUEST_URI'];
+        $cache_id = $iBlockId . $idSection . $ufProperties[0] . $_SERVER['REQUEST_URI'];
         self::$cache_path = 'getUfVal';
 
         if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
@@ -264,7 +280,7 @@ class Queries
         }
 
         $ufValues = [];
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
+        $arFilter = ['IBLOCK_ID' => $iBlockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
         $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
 
         while ($data = $rs->GetNext()) {
