@@ -7,19 +7,19 @@
 
 class Queries
 {
-    public static int $life_time = 86400 * 7;
-    public static string $cache_path = 'allElements';
+    public static $life_time = 86400 * 7;
+    public static $cache_path = 'allElements';
 
     // Получить элемент или список элементов. Параметр $idElements - массив ID элементов,
     // $arSelect - передаем массив полей. Если не передать ничего, то выберутся все поля.
     // $allProperties - по умолчанию false, если передать true, то дополнительно вернет свойства элемента.
     // Пример вызова Queries::getElements([11685, 11686], ['ID', 'PROPERTY_NAME_PROP'], true);
-    public static function getElements($idElements = [], $arSelect = [], bool $allProperties = false): array
+    public static function getElements($idElements = [], $arSelect = [], $allProperties = false)
     {
         CModule::IncludeModule('iblock');
 
         $cache = new CPHPCache();
-        $cache_id = $idElements[0] . '_' . +count($idElements) . '_elems';
+        $cache_id = $idElements[0] . '_' . +count($idElements) . $_SERVER['REQUEST_URI'] . '_elems';
         self::$cache_path = 'getElements';
 
         if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
@@ -52,12 +52,12 @@ class Queries
     }
 
     // Пример Queries::getAllElements([22], ['ID'], true);
-    public static function getAllElements($idBlock = [], $arSelect = [], bool $allProperties = false): array
+    public static function getAllElements($idBlock = [], $arSelect = [], $allProperties = false)
     {
         CModule::IncludeModule('iblock');
 
         $cache = new CPHPCache();
-        $cache_id = $idBlock[0] . '_' . +count($idBlock) . '_allElems';
+        $cache_id = $idBlock[0] . '_' . +count($idBlock) . $_SERVER['REQUEST_URI'] . '_allElems';
         self::$cache_path = 'getAllElements';
 
         if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
@@ -89,8 +89,47 @@ class Queries
         return $arReturn;
     }
 
+    // Пример Queries::getAllElementsSection([22], 221, ['ID'], true);
+    public static function getAllElementsSection($idBlock = [], $idSection, $arSelect = [], $allProperties = false)
+    {
+        CModule::IncludeModule('iblock');
+
+        $cache = new CPHPCache();
+        $cache_id = $idBlock[0] . '_' . $idSection . $_SERVER['REQUEST_URI'] . '_allElemsSection';
+        self::$cache_path = 'getAllElementsSection';
+
+        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
+            $res = $cache->GetVars();
+            if (is_array($res["data"]) && (count($res["data"]) > 0))
+                return $res["data"];
+        }
+        $arReturn = [];
+        $arFilter = ['IBLOCK_ID' => $idBlock, 'ACTIVE' => 'Y', 'SECTION_ID' => $idSection];
+
+        if (!empty($arSelect))
+            array_unshift($arSelect, 'ID', 'IBLOCK_ID', 'CODE', 'NAME', 'DETAIL_PAGE_URL');
+
+        $rs = CIBlockElement::GetList(['SORT' => 'ASC'], $arFilter, false, false, $arSelect);
+
+        $i = 0;
+        while ($ob = $rs->GetNextElement()) {
+            $arReturn[$i] = $ob->GetFields();
+
+            if ($allProperties === true) {
+                $arReturn[$i]['PROPERTIES'] = $ob->GetProperties();
+            }
+            $i += 1;
+        }
+
+        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
+        $cache->EndDataCache(["data" => $arReturn]);
+
+        return $arReturn;
+    }
+
     // Получить все данные текущей секции
-    public static function getSectAll(int $iblockId = null, bool $currentId = false): array
+    // Пример Queries::getSectAll(null, true);
+    public static function getSectAll($iblockId = null, $currentId = false)
     {
         global $APPLICATION;
         $cache = new CPHPCache();
@@ -119,7 +158,8 @@ class Queries
     }
 
     // Получить ID секций. Возвращает массив ID для текущего урла. Чтобы получить 1 текущий id - передайте вторым параметром true.
-    public static function getSectId(int $iblockId = null, bool $currentId = false)
+    // Пример Queries::getSectId(null, true);
+    public static function getSectId($iblockId = null, $currentId = false)
     {
         global $APPLICATION;
         CModule::IncludeModule('iblock');
@@ -142,43 +182,12 @@ class Queries
         }
     }
 
-    // Получить пользовательское значение UF
-    // Пример Queries::getUfVal($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getUfVal(int $iblockId, int $idSection, $ufProperties = []): array
-    {
-        CModule::IncludeModule('iblock');
-        $cache = new CPHPCache();
-        $cache_id = $iblockId . $idSection . $ufProperties[0];
-        self::$cache_path = 'getUfVal';
-
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
-        }
-
-        $ufValues = [];
-        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
-        $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
-
-        while ($data = $rs->GetNext()) {
-            foreach ($ufProperties as $ufProperty) {
-                $ufValues[$ufProperty] = $data[$ufProperty];
-            }
-        }
-
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $ufValues]);
-
-        return $ufValues;
-    }
-
     // Получить несколько разделов
     // Пример Queries::getSections($arParams['IBLOCK_ID'], [155, 156], ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getSections(int $iblockId, $idSections = [], $ufProperties = []): array
+    public static function getSections($iblockId, $idSections = [], $ufProperties = [])
     {
         $cache = new CPHPCache();
-        $cache_id = $idSections[0];
+        $cache_id = $_SERVER['REQUEST_URI'] . $idSections[0];
         self::$cache_path = 'getSections';
 
         if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
@@ -204,6 +213,70 @@ class Queries
         $cache->EndDataCache(["data" => $sectValues]);
 
         return $sectValues;
+    }
+
+    // Получить раздел
+    // Пример Queries::getSection($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
+    public static function getSection($iblockId, $idSection, $ufProperties = [])
+    {
+        $cache = new CPHPCache();
+        $cache_id = $_SERVER['REQUEST_URI'] . $idSection;
+        self::$cache_path = 'getSection';
+
+        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
+            $res = $cache->GetVars();
+            if (is_array($res["data"]) && (count($res["data"]) > 0))
+                return $res["data"];
+        }
+
+        $sectValues = [];
+        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
+        $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
+        $i = 0;
+
+        while ($data = $rs->GetNext()) {
+            $sectValues[$i] = $data;
+            foreach ($ufProperties as $ufProperty) {
+                $sectValues[$i][$ufProperty] = $data[$ufProperty];
+            }
+            $i += 1;
+        }
+
+        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
+        $cache->EndDataCache(["data" => $sectValues]);
+
+        return $sectValues;
+    }
+
+    // Получить пользовательское значение UF
+    // Пример Queries::getUfVal($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
+    public static function getUfVal($iblockId, $idSection, $ufProperties = [])
+    {
+        CModule::IncludeModule('iblock');
+        $cache = new CPHPCache();
+        $cache_id = $iblockId . $idSection . $ufProperties[0] . $_SERVER['REQUEST_URI'];
+        self::$cache_path = 'getUfVal';
+
+        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
+            $res = $cache->GetVars();
+            if (is_array($res["data"]) && (count($res["data"]) > 0))
+                return $res["data"];
+        }
+
+        $ufValues = [];
+        $arFilter = ['IBLOCK_ID' => $iblockId, 'ID' => $idSection, 'ACTIVE' => 'Y'];
+        $rs = CIBlockSection::GetList([], $arFilter, false, $ufProperties);
+
+        while ($data = $rs->GetNext()) {
+            foreach ($ufProperties as $ufProperty) {
+                $ufValues[$ufProperty] = $data[$ufProperty];
+            }
+        }
+
+        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
+        $cache->EndDataCache(["data" => $ufValues]);
+
+        return $ufValues;
     }
 
 }
