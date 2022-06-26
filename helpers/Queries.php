@@ -198,6 +198,35 @@ class Queries
         return $sectId;
     }
 
+    // Получить все ID подразделов раздела
+    public static function getChildSections($iBlockId, $parentSect = [])
+    {
+        CModule::IncludeModule('iblock');
+        $cache = new CPHPCache();
+        $cache_id = $iBlockId . $parentSect[0] . $_SERVER['REQUEST_URI'];
+        self::$cache_path = 'getChildSections';
+
+        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
+            $res = $cache->GetVars();
+            if (is_array($res["data"]) && (count($res["data"]) > 0))
+                return $res["data"];
+        }
+
+        $sectId = [];
+        $rsParentSection = CIBlockSection::GetList(
+            ['NAME' => 'ASC'],
+            ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y', 'SECTION_ID' => $parentSect]
+        );
+        while ($arParentSection = $rsParentSection->GetNext()) {
+            $sectId[] = $arParentSection['ID'];
+        }
+
+        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
+        $cache->EndDataCache(["data" => $sectId]);
+
+        return $sectId;
+    }
+
     // Получить несколько разделов
     // Пример Queries::getSections($arParams['IBLOCK_ID'], [155, 156], ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
     public static function getSections($iBlockId, $idSections = [], $ufProperties = [])

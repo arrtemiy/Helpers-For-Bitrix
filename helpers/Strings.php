@@ -1,6 +1,6 @@
 <?php
 
-class StringsHelper
+class Strings
 {
     // Замена текстовых URL и email на ссылки
     public static function replaceLinks($text)
