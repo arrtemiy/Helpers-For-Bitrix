@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm
  * User: Artem Zinatullin
@@ -7,25 +8,27 @@
 
 class Queries
 {
-    public static $life_time = 86400 * 7;
-    public static $cache_path = 'allElements';
+    public static $lifeTime = 86400 * 7;
+    public static $cachePath = 'allElements';
 
     // Получить элемент или список элементов. Параметр $idElements - массив ID элементов,
     // $arSelect - передаем массив полей. Если не передать ничего, то выберутся все поля.
     // $allProperties - по умолчанию false, если передать true, то дополнительно вернет свойства элемента.
     // Пример вызова Queries::getElements([11685, 11686], ['ID', 'PROPERTY_NAME_PROP'], true);
-    public static function getElements($idElements = [], $arSelect = [], $allProperties = false)
+    public static function getElements($idElements = [], $arSelect = [], $allProperties = false, $cacheEnabled = false)
     {
         CModule::IncludeModule('iblock');
 
-        $cache = new CPHPCache();
-        $cache_id = $idElements[0] . '_' . +count($idElements) . $_SERVER['REQUEST_URI'] . '_elems';
-        self::$cache_path = 'getElements';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $idElements[0] . '_' . +count($idElements) . $_SERVER['REQUEST_URI'] . '_elems';
+        self::$cachePath = 'getElements';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
         $arReturn = [];
         $arFilter = ['ID' => $idElements, 'ACTIVE' => 'Y'];
@@ -45,25 +48,70 @@ class Queries
             $i += 1;
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $arReturn]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $arReturn]);
+        }
+
+        return $arReturn;
+    }
+
+    public static function getElement($idElement, $arSelect = [], $allProperties = false, $cacheEnabled = false)
+    {
+        CModule::IncludeModule('iblock');
+
+        $cPhpCache = new CPHPCache();
+        $cacheId = $idElement . '_' . +count($idElement) . $_SERVER['REQUEST_URI'] . '_elem';
+        self::$cachePath = 'getElement';
+
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
+        }
+        $arReturn = [];
+        $arFilter = ['ID' => $idElement, 'ACTIVE' => 'Y'];
+
+        if (!empty($arSelect))
+            array_unshift($arSelect, 'ID', 'IBLOCK_ID', 'CODE', 'NAME', 'DETAIL_PAGE_URL');
+
+        $rs = CIBlockElement::GetList([], $arFilter, false, false, $arSelect);
+
+        $i = 0;
+        if ($ob = $rs->GetNextElement()) {
+            $arReturn[$i] = $ob->GetFields();
+
+            if ($allProperties === true) {
+                $arReturn[$i]['PROPERTIES'] = $ob->GetProperties();
+            }
+            $i += 1;
+        }
+
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $arReturn]);
+        }
 
         return $arReturn;
     }
 
     // Пример Queries::getAllElements([22], ['ID'], true);
-    public static function getAllElements($idBlock = [], $arSelect = [], $allProperties = false)
+    public static function getAllElements($idBlock = [], $arSelect = [], $allProperties = false, $cacheEnabled = false)
     {
         CModule::IncludeModule('iblock');
 
-        $cache = new CPHPCache();
-        $cache_id = $idBlock[0] . '_' . +count($idBlock) . $_SERVER['REQUEST_URI'] . '_allElems';
-        self::$cache_path = 'getAllElements';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $idBlock[0] . '_' . +count($idBlock) . $_SERVER['REQUEST_URI'] . '_allElems';
+        self::$cachePath = 'getAllElements';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
         $arReturn = [];
         $arFilter = ['IBLOCK_ID' => $idBlock, 'ACTIVE' => 'Y'];
@@ -83,25 +131,55 @@ class Queries
             $i += 1;
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $arReturn]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $arReturn]);
+        }
+
+        return $arReturn;
+    }
+
+    // Пример Queries::getElementCode([Strings::uriPartEnd()], ['ID', 'PROPERTY_BREADCRUMB']);
+    public static function getElementCode($code = [], $arSelect = [], $allProperties = false)
+    {
+        CModule::IncludeModule('iblock');
+
+        self::$cachePath = 'getElementCode';
+
+        $arReturn = [];
+        $arFilter = ['CODE' => $code, 'ACTIVE' => 'Y'];
+
+        if (!empty($arSelect))
+            array_unshift($arSelect, 'ID', 'IBLOCK_ID', 'CODE', 'NAME', 'DETAIL_PAGE_URL');
+
+        $rs = CIBlockElement::GetList([], $arFilter, false, false, $arSelect);
+
+        if ($ob = $rs->GetNextElement()) {
+            $arReturn = $ob->GetFields();
+
+            if ($allProperties === true) {
+                $arReturn['PROPERTIES'] = $ob->GetProperties();
+            }
+        }
 
         return $arReturn;
     }
 
     // Пример Queries::getAllElementsSection([22], 221, ['ID'], true);
-    public static function getAllElementsSection($idBlock = [], $idSection, $arSelect = [], $allProperties = false)
+    public static function getAllElementsSection($idBlock = [], $idSection, $arSelect = [], $allProperties = false, $cacheEnabled = false)
     {
         CModule::IncludeModule('iblock');
 
-        $cache = new CPHPCache();
-        $cache_id = $idBlock[0] . '_' . $idSection . $_SERVER['REQUEST_URI'] . '_allElemsSection';
-        self::$cache_path = 'getAllElementsSection';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $idBlock[0] . '_' . $idSection . $_SERVER['REQUEST_URI'] . '_allElemsSection';
+        self::$cachePath = 'getAllElementsSection';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
         $arReturn = [];
         $arFilter = ['IBLOCK_ID' => $idBlock, 'ACTIVE' => 'Y', 'SECTION_ID' => $idSection];
@@ -121,25 +199,29 @@ class Queries
             $i += 1;
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $arReturn]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $arReturn]);
+        }
 
         return $arReturn;
     }
 
     // Получить все данные текущей секции
     // Пример Queries::getSectAll(null, true);
-    public static function getSectAll($iBlockId = null, $currentId = false)
+    public static function getSectAll($iBlockId = null, $currentId = false, $cacheEnabled = false)
     {
         global $APPLICATION;
-        $cache = new CPHPCache();
-        $cache_id = $APPLICATION->GetCurPage();
-        self::$cache_path = 'getSectAll';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $APPLICATION->GetCurPage();
+        self::$cachePath = 'getSectAll';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
 
         CModule::IncludeModule('iblock');
@@ -151,8 +233,10 @@ class Queries
         $rs = CIBlockSection::GetList([], $arFilter, false, false, []);
         $arSectionData[] = $rs->Fetch();
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $arSectionData]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $arSectionData]);
+        }
 
         return $arSectionData;
     }
@@ -199,17 +283,19 @@ class Queries
     }
 
     // Получить все ID подразделов раздела
-    public static function getChildSections($iBlockId, $parentSect = [])
+    public static function getChildSections($iBlockId, $parentSect = [], $cacheEnabled = false)
     {
         CModule::IncludeModule('iblock');
-        $cache = new CPHPCache();
-        $cache_id = $iBlockId . $parentSect[0] . $_SERVER['REQUEST_URI'];
-        self::$cache_path = 'getChildSections';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $iBlockId . $parentSect[0] . $_SERVER['REQUEST_URI'];
+        self::$cachePath = 'getChildSections';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
 
         $sectId = [];
@@ -217,28 +303,69 @@ class Queries
             ['NAME' => 'ASC'],
             ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y', 'SECTION_ID' => $parentSect]
         );
-        while ($arParentSection = $rsParentSection->GetNext()) {
-            $sectId[] = $arParentSection['ID'];
+        while ($arChildSection = $rsParentSection->GetNext()) {
+            $sectId[] = $arChildSection['ID'];
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $sectId]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $sectId]);
+        }
+
+        return $sectId;
+    }
+
+    // Получить все ID подразделов раздела с данными
+    public static function getChildSectionsData($iBlockId, $parentSect = [], $cacheEnabled = false)
+    {
+        CModule::IncludeModule('iblock');
+        $cPhpCache = new CPHPCache();
+        $cacheId = $iBlockId . $parentSect[0] . $_SERVER['REQUEST_URI'] . 'getChildSectionsData';
+        self::$cachePath = 'getChildSectionsData';
+
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
+        }
+
+        $sectId = [];
+        $rsParentSection = CIBlockSection::GetList(
+            ['NAME' => 'ASC'],
+            ['IBLOCK_ID' => $iBlockId, 'ACTIVE' => 'Y', 'SECTION_ID' => $parentSect]
+        );
+        $i = 0;
+        while ($arChildSection = $rsParentSection->GetNext()) {
+            $sectId[$i]['ID'] = $arChildSection['ID'];
+            $sectId[$i]['NAME'] = $arChildSection['NAME'];
+            $sectId[$i]['CODE'] = $arChildSection['CODE'];
+            $i++;
+        }
+
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $sectId]);
+        }
 
         return $sectId;
     }
 
     // Получить несколько разделов
     // Пример Queries::getSections($arParams['IBLOCK_ID'], [155, 156], ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getSections($iBlockId, $idSections = [], $ufProperties = [])
+    public static function getSections($iBlockId, $idSections = [], $ufProperties = [], $cacheEnabled = false)
     {
-        $cache = new CPHPCache();
-        $cache_id = $_SERVER['REQUEST_URI'] . $idSections[0];
-        self::$cache_path = 'getSections';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $_SERVER['REQUEST_URI'] . $idSections[0];
+        self::$cachePath = 'getSections';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
 
         $sectValues = [];
@@ -254,24 +381,28 @@ class Queries
             $i += 1;
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $sectValues]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $sectValues]);
+        }
 
         return $sectValues;
     }
 
     // Получить раздел
     // Пример Queries::getSection($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getSection($iBlockId, $idSection, $ufProperties = [])
+    public static function getSection($iBlockId, $idSection, $ufProperties = [], $cacheEnabled = false)
     {
-        $cache = new CPHPCache();
-        $cache_id = $_SERVER['REQUEST_URI'] . $idSection;
-        self::$cache_path = 'getSection';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $_SERVER['REQUEST_URI'] . $idSection;
+        self::$cachePath = 'getSection';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
 
         $sectValues = [];
@@ -287,25 +418,29 @@ class Queries
             $i += 1;
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $sectValues]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $sectValues]);
+        }
 
         return $sectValues;
     }
 
     // Получить пользовательское значение UF
     // Пример Queries::getUfVal($arParams['IBLOCK_ID'], 155, ["UF_SECTION_DESCR", 'UF_BANNER_HAVE', 'UF_CODE_TEXT']);
-    public static function getUfVal($iBlockId, $idSection, $ufProperties = [])
+    public static function getUfVal($iBlockId, $idSection, $ufProperties = [], $cacheEnabled = false)
     {
         CModule::IncludeModule('iblock');
-        $cache = new CPHPCache();
-        $cache_id = $iBlockId . $idSection . $ufProperties[0] . $_SERVER['REQUEST_URI'];
-        self::$cache_path = 'getUfVal';
+        $cPhpCache = new CPHPCache();
+        $cacheId = $iBlockId . $idSection . $ufProperties[0] . $_SERVER['REQUEST_URI'];
+        self::$cachePath = 'getUfVal';
 
-        if (self::$life_time > 0 && $cache->InitCache(self::$life_time, $cache_id, self::$cache_path)) {
-            $res = $cache->GetVars();
-            if (is_array($res["data"]) && (count($res["data"]) > 0))
-                return $res["data"];
+        if ($cacheEnabled === true) {
+            if (self::$lifeTime > 0 && $cPhpCache->InitCache(self::$lifeTime, $cacheId, self::$cachePath)) {
+                $res = $cPhpCache->GetVars();
+                if (is_array($res["data"]) && (count($res["data"]) > 0))
+                    return $res["data"];
+            }
         }
 
         $ufValues = [];
@@ -318,8 +453,10 @@ class Queries
             }
         }
 
-        $cache->StartDataCache(self::$life_time, $cache_id, self::$cache_path);
-        $cache->EndDataCache(["data" => $ufValues]);
+        if ($cacheEnabled === true) {
+            $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, self::$cachePath);
+            $cPhpCache->EndDataCache(["data" => $ufValues]);
+        }
 
         return $ufValues;
     }

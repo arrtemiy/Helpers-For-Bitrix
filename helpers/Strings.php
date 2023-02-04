@@ -45,6 +45,15 @@ class Strings
         return $uriNewArr[$part];
     }
 
+    // Пример Strings::uriPartEnd()
+    public static function uriPartEnd()
+    {
+        $uri = explode('?', $_SERVER['REQUEST_URI'], 2)[0];
+        $uriNewArr = array_values(array_filter(explode('/', $uri)));
+
+        return end($uriNewArr);
+    }
+
     public static function isHttps()
     {
         return isset($_SERVER['HTTPS']) ? $protocol = 'https://' : $protocol = 'http://';
@@ -55,6 +64,18 @@ class Strings
         $isHttps = isset($_SERVER['HTTPS']) ? $protocol = 'https://' : $protocol = 'http://';
         $url = $_SERVER['HTTP_HOST'] . explode('?', $_SERVER['REQUEST_URI'], 2)[0];
         return "<link rel='canonical' href='. $isHttps . $url'/>";
+    }
+
+    public static function priceFormat($price)
+    {
+        return number_format($price, 0, '.', ' ');
+    }
+
+    // Окгруляет десятичные в большую сторону. Пример 32.782 => 32.79
+    public static function roundUp($value, $precision)
+    {
+        $pow = pow(10, $precision);
+        return (ceil($pow * $value) + ceil($pow * $value - ceil($pow * $value))) / $pow;
     }
     
 }
