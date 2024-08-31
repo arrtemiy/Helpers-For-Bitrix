@@ -510,5 +510,4 @@ class Queries
         $cPhpCache->StartDataCache(self::$lifeTime, $cacheId, $cachePath);
         $cPhpCache->EndDataCache(["data" => $data]);
     }
-
 }
