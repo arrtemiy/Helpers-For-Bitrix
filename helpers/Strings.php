@@ -66,6 +66,17 @@ class Strings
         return "<link rel='canonical' href='. $isHttps . $url'/>";
     }
 
+    public static function canonicalBxFilter()
+    {
+        $url = $_SERVER['HTTP_HOST'] . explode('?', $_SERVER['REQUEST_URI'], 2)[0];
+        $uri = explode('?', $_SERVER['REQUEST_URI'], 2)[0];
+        $uriNewArr = array_values(array_filter(explode('/', $uri)));
+        if (in_array('filter', $uriNewArr)) {
+            $url = preg_replace('/(filter.*)/m', '', $url);
+        }
+        return "<link rel=\"canonical\" href=\"$url\">";
+    }
+
     public static function priceFormat($price)
     {
         return number_format($price, 0, '.', ' ');
@@ -76,6 +87,21 @@ class Strings
     {
         $pow = pow(10, $precision);
         return (ceil($pow * $value) + ceil($pow * $value - ceil($pow * $value))) / $pow;
+    }
+
+    public static function generateUUID() {
+        // Генерация UUID версии 4
+        if (function_exists('com_create_guid')) {
+            return trim(com_create_guid(), '{}');
+        } else {
+            // Если функция com_create_guid не доступна, используем альтернативный способ
+            $data = openssl_random_pseudo_bytes(16);
+            // Устанавливаем версию UUID (4)
+            $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+            $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+            return vsprintf('%.8s-%.4s-%.4s-%.4s-%.12s', str_split(bin2hex($data), 4));
+        }
     }
     
 }
