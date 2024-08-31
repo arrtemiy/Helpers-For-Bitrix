@@ -103,4 +103,5 @@ class Strings
             return vsprintf('%.8s-%.4s-%.4s-%.4s-%.12s', str_split(bin2hex($data), 4));
         }
     }
+    
 }
